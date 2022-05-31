@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 7066308709829639983}
   - component: {fileID: 7066308709829639976}
-  - component: {fileID: 7066308709829639982}
   - component: {fileID: 4270215004491444054}
   m_Layer: 0
   m_Name: Agent
@@ -46,26 +45,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 27bca4b011e0e2849961f4910d0aba42, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxMovementSpeed: 50
-  maxRotationSpeed: 180
---- !u!114 &7066308709829639982
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7066308709829639981}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 75f0c41829740ea40ad6dc44e942f2fc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  score: 0
-  visionRange: 30
   network:
     inputs: 5
     outputs: 2
-    width: 4
+    width: 0
     depth: 0
     weights:
     - 1
@@ -86,35 +69,14 @@ MonoBehaviour:
   - 0
   - 0
   - 0
-  actions:
-  - m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 7066308709829639976}
-        m_TargetAssemblyTypeName: TestAction, Assembly-CSharp
-        m_MethodName: MoveForward
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-  - m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 7066308709829639976}
-        m_TargetAssemblyTypeName: TestAction, Assembly-CSharp
-        m_MethodName: Rotate
-        m_Mode: 0
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+  score: 0
+  randomWeightLimits: {x: -0.5, y: 0.5}
+  weightLimits: {x: -1, y: 1}
+  mutationLimits: {x: -0.5, y: 0.5}
+  mutationChance: 0.01
+  maxMovementSpeed: 50
+  maxRotationSpeed: 180
+  visionRange: 80
 --- !u!54 &4270215004491444054
 Rigidbody:
   m_ObjectHideFlags: 0

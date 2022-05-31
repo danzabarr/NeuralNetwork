@@ -6,7 +6,6 @@ using UnityEditor;
 public class NeuralNetworkEditorWindow : EditorWindow
 {
     private NeuralNetworkAgent agent;
-    private NeuralNetworkSave save;
     private  const float ButtonSize = 40;
 
     [MenuItem("Window/Neural Network Editor")]
@@ -29,18 +28,12 @@ public class NeuralNetworkEditorWindow : EditorWindow
     private void Revalidate()
     {
         NeuralNetworkAgent agent = Selection.activeGameObject?.GetComponent<NeuralNetworkAgent>();
-        NeuralNetworkSave save = Selection.activeObject as NeuralNetworkSave;
 
         bool needsRepaint = false;
 
         if (this.agent != agent)
         {
             this.agent = agent;
-            needsRepaint = true;
-        }
-        if (this.save != save)
-        {
-            this.save = save;
             needsRepaint = true;
         }
         if (needsRepaint)
@@ -69,16 +62,27 @@ public class NeuralNetworkEditorWindow : EditorWindow
         return Mathf.Lerp(ButtonSize / 2, position.height - ButtonSize / 2, (r + 0.5f) / columnHeight);
     }
 
-    private void DrawNode(float value, int n, int d, int r) 
+    private void DrawNode(float value, int n, int d, int r)
+    {
+        DrawNode(value, n, d, r, default, null, null);
+    }
+
+    private void DrawNode(float value, int n, int d, int r, Rect labelPosition, string label, GUIStyle labelStyle)
     {
         var oldColor = GUI.backgroundColor;
         GUI.backgroundColor = Color.Lerp(oldColor, Color.green, value);
 
         float x = NodeX(d);
         float y = NodeY(d, r);
-        string label = (Mathf.Round(value * 100) * 0.01).ToString();
+        string buttonText = (Mathf.Round(value * 100) * 0.01).ToString();
 
-        if (GUI.Button(new Rect(x - 15, y - 15, ButtonSize, ButtonSize), label))
+        if (label != null)
+        {
+            labelPosition = new Rect(x + labelPosition.x, y + labelPosition.y, labelPosition.width, labelPosition.height);
+            GUI.Label(labelPosition, label, labelStyle);
+        }
+
+        if (GUI.Button(new Rect(x - 15, y - 15, ButtonSize, ButtonSize), buttonText))
         {
             if (value > 0)
                 agent.SetValue(n, 0);
@@ -140,18 +144,33 @@ public class NeuralNetworkEditorWindow : EditorWindow
         int depth = agent.network.depth;
         int width = agent.network.width;
         int outputs = agent.network.outputs;
-        float[] values = agent.values;
         int n = 0;
 
+        GUIStyle inputLabelStyle = new GUIStyle(GUI.skin.label);
+        inputLabelStyle.alignment = TextAnchor.MiddleRight;
+
+        GUIStyle outputLabelStyle = GUI.skin.label;
+
+        Rect inputLabelPosition = new Rect(-220, -10, 200, 30);
+        Rect outputLabelPosition = new Rect(30, -10, 100, 30);
+
         for (int r = 0; r < inputs; r++)
-            DrawNode(values[r], n++, 0, r);
+        {
+            string inputName = agent.InputName(r);
+            
+            DrawNode(agent.GetValue(r), n++, 0, r, inputLabelPosition, inputName, inputLabelStyle);
+        }
 
         for (int d = 0; d < depth; d++)
             for (int r = 0; r < width; r++)
-                DrawNode(values[inputs + d * width + r], n++, d + 1, r);
+                DrawNode(agent.GetValue(inputs + d * width + r), n++, d + 1, r);
 
         for (int r = 0; r < outputs; r++)
-            DrawNode(values[inputs + width * depth + r], n++, depth + 1, r);
+        {
+            string outputName = agent.OutputName(r);
+            DrawNode(agent.GetValue(inputs + width * depth + r), n++, depth + 1, r, 
+                outputLabelPosition, outputName, outputLabelStyle);
+        }
     }
 
     public void DrawWeights()
@@ -161,15 +180,10 @@ public class NeuralNetworkEditorWindow : EditorWindow
         int inputs = agent.network.inputs;
         int outputs = agent.network.outputs;
 
-        float[] values = agent.values;
         float[] weights = agent.network.weights;
-
-        if (values == null)
-            return;
 
         if (weights == null)
             return;
-
 
         int w = 0;
         int r0, r1;

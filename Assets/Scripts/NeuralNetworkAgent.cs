@@ -2,36 +2,21 @@ using UnityEngine;
 using UnityEngine.Events;
 
 [DisallowMultipleComponent]
-public class NeuralNetworkAgent : MonoBehaviour
+public abstract class NeuralNetworkAgent : MonoBehaviour
 {
-    public float score = 0.0f;
-    public float visionRange = 80;
-
     public NeuralNetwork network;
     public float[] values;
-    public NeuralNetworkInput[] inputs;
-    public UnityEvent<float>[] actions;
 
-    public virtual void Output(int index, float value) 
-    {
-        actions[index]?.Invoke(value);
-    }
+    public float score = 0.0f;
 
-    public virtual float Input(int index)
-    {
-        return index switch
-        {
-            0 => AlwaysOn,
-            1 => NearestFoodAngle,
-            2 => AlignmentAngle,
-            3 => CohesionAngle,
-            4 => SeparationAngle,
-            5 => NearbyAgentsDensity,
-            6 => NearestAgentAngle,
-            _ => 0,
-        };
-    }
+    public Vector2 randomWeightLimits, weightLimits, mutationLimits;
+    public float mutationChance;
 
+    public abstract float Input(int index);
+    public abstract void Output(int index, float value);
+    public abstract string InputName(int index);
+    public abstract string OutputName(int index);
+    
     public void OnValidate()
     {
         if (network.weights == null || network.weights.Length != network.CountWeights)
@@ -40,7 +25,6 @@ public class NeuralNetworkAgent : MonoBehaviour
         RecalculateValues();
     }
 
-
     public void Update()
     {
         TriggerSensors();
@@ -48,20 +32,24 @@ public class NeuralNetworkAgent : MonoBehaviour
         TriggerActions();
     }
 
+    public int Mutate()
+    {
+        return network.Mutate(mutationChance, mutationLimits.x, mutationLimits.y, weightLimits.x, weightLimits.y);
+    }
+
+    public void Randomise()
+    {
+        network.Randomise(randomWeightLimits.x, randomWeightLimits.y, NeuralNetwork.Cube);
+    }
+
     public void TriggerSensors()
     {
-        if (inputs == null || inputs.Length != network.inputs)
-            inputs = new NeuralNetworkInput[inputs.Length];
-
         for (int i = 0; i < network.inputs; i++)
-            values[i] = inputs[i].Input();//Input(i);
+            values[i] = Input(i);
     }
 
     public void TriggerActions()
     {
-        if (actions == null || actions.Length != network.outputs)
-            actions = new UnityEvent<float>[network.outputs];
-
         for (int i = 0; i < network.outputs; i++)
         {
             int index = i + network.inputs + network.width * network.depth;
@@ -83,7 +71,15 @@ public class NeuralNetworkAgent : MonoBehaviour
         network.RecalculateValues(values);
     }
 
-    public void ClearValue(int index) => SetValue(index, 0);
+    public void ClearValue(int index)
+    {
+        SetValue(index, 0);
+    }
+
+    public float GetValue(int index)
+    {
+        return values[index];
+    }
 
     public void SetValue(int index, float value)
     {
@@ -93,213 +89,5 @@ public class NeuralNetworkAgent : MonoBehaviour
     public void AddValue(int index, float value)
     {
         values[index] += value;
-    }
-
-    public static float RandomZeroToOne => Random.value;
-    public static float RandomPlusMinusOne => Random.value * 2 - 1;
-    public static float AlwaysOn => 1;
-    public static float Zero => 0;
-    public static float MinusOne => -1;
-
-    public float PositionX
-        => transform.position.x;
-    public float PositionY
-        => transform.position.x;
-    public float PositionZ
-            => transform.position.z;
-    public float RotationY
-        => transform.eulerAngles.y;
-
-    public float NearbyAgentsCount
-    {
-        get
-        {
-            float squareRange = 10;
-            int count = 0;
-
-            foreach (NeuralNetworkAgent a in SceneManager.agents)
-            {
-                if (a == null)
-                    continue;
-
-                if (a == this)
-                    continue;
-                
-                float squareDistance = Vector3.SqrMagnitude(a.transform.position - transform.position);
-                if (squareDistance < squareRange)
-                    count++;
-            }
-
-
-            return count;
-        }
-    }
-
-    public float NearbyAgentsDensity
-    {
-        get
-        {
-            float density = 0;
-            foreach (NeuralNetworkAgent a in SceneManager.agents)
-            {
-                if (a == null)
-                    continue;
-
-                if (a == this)
-                    continue;
-
-                float squareDistance = Vector3.SqrMagnitude(a.transform.position - transform.position);
-
-                if (squareDistance == 0)
-                    continue;
-
-                density += 1f / squareDistance;
-            }
-
-            return density;
-        }
-    }
-
-    public float NearestAgentAngle
-    {
-        get
-        {
-            Vector3 origin = transform.position;
-            Vector3 forward = transform.forward;
-            float d = visionRange * visionRange;
-            NeuralNetworkAgent nearest = SceneManager.Nearest(origin, SceneManager.agents, ref d);
-            if (nearest == null) return 0;
-            Vector3 target = nearest.transform.position;
-            return Vector3.SignedAngle(forward, target - origin, Vector3.up) / 180;
-        }
-    }
-
-    public float NearestFoodInverseSquareDistance
-    {
-        get
-        {
-            Vector3 origin = transform.position;
-            float d = visionRange * visionRange;
-            Item nearest = Item.Nearest(origin, ref d);
-            if (nearest == null) return 0;
-            return Mathf.Lerp(0, 1, 1 / d);
-        }
-    }
-
-    public float NearestFoodAngle
-    {
-        get
-        {
-            Vector3 origin = transform.position;
-            Vector3 forward = transform.forward;
-            float d = visionRange * visionRange;
-            Item nearest = Item.Nearest(origin, ref d);
-            if (nearest == null) return 0;
-            Vector3 target = nearest.transform.position;
-            return Vector3.SignedAngle(forward, target - origin, Vector3.up) / 180;
-        }
-    }
-
-    public float CohesionAngle
-    {
-        get
-        {
-            Vector3 cohesion = Vector2.zero;
-            int n = 0;
-            if (SceneManager.agents != null)
-                foreach (NeuralNetworkAgent agent in SceneManager.agents)
-                {
-                    if (agent == null)
-                        continue;
-
-                    if (agent == this)
-                        continue;
-
-                    float sqDist = Vector3.SqrMagnitude(agent.transform.position - transform.position);
-
-                    if (sqDist <= visionRange * visionRange)
-                    {
-                        cohesion += (agent.transform.position - transform.position);
-                        n++;
-                    }
-                }
-
-            if (n <= 0)
-                return 0;
-
-            cohesion /= n;
-            //cohesion -= transform.position;
-            //cohesion *= -1;
-
-            return Vector3.SignedAngle(transform.forward, cohesion, Vector3.up) / 180;
-        }
-    }
-    public float SeparationAngle
-    {
-        get
-        {
-            Vector3 separation = Vector2.zero;
-            int n = 0;
-            if (SceneManager.agents != null)
-                foreach (NeuralNetworkAgent agent in SceneManager.agents)
-                {
-                    if (agent == null)
-                        continue;
-
-                    if (agent == this)
-                        continue;
-
-                    float sqDist = Vector3.SqrMagnitude(agent.transform.position - transform.position);
-
-                    if (sqDist <= visionRange * visionRange)
-                    {
-                        separation += (transform.position - agent.transform.position) / (1 + sqDist);
-                        n++;
-                    }
-                }
-
-            if (n <= 0)
-                return 0;
-
-            separation /= n;
-            //cohesion -= transform.position;
-            //separation *= -1;
-
-            return Vector3.SignedAngle(transform.forward, separation, Vector3.up) / 180;
-        }
-    }
-
-    public float AlignmentAngle
-    {
-        get
-        {
-            Vector3 alignment = Vector2.zero;
-            int n = 0;
-            if (SceneManager.agents != null)
-                foreach (NeuralNetworkAgent agent in SceneManager.agents)
-                {
-                    if (agent == null)
-                        continue;
-
-                    if (agent == this)
-                        continue;
-
-                    float sqDist = Vector3.SqrMagnitude(agent.transform.position - transform.position);
-
-                    if (sqDist <= visionRange * visionRange)
-
-                    {
-                        alignment += agent.transform.forward / (1 + sqDist);
-                        n++;
-                    }
-                }
-
-            if (n <= 0)
-                return 0;
-
-            alignment /= n;
-
-            return Vector3.SignedAngle(transform.forward, alignment, Vector3.up) / 180;
-        }
     }
 }

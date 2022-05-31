@@ -12,10 +12,7 @@ public class NeuralNetworkManager : MonoBehaviour
     public float timeScale;
     public float epochDuration;
     public int population;
-
     public float spawnRadius;
-    public Vector2 initialWeightLimits, weightLimits, mutationLimits;
-    public float mutationChance;
     
     public NeuralNetworkAgent prefab;
     public FoodSpawner[] spawners;
@@ -98,9 +95,9 @@ public class NeuralNetworkManager : MonoBehaviour
             NeuralNetworkAgent c1 = InstantiateAgent(w1);
             NeuralNetworkAgent c2 = InstantiateAgent(w2);
 
-            mutations += c1.network.Mutate(mutationChance, mutationLimits.x, mutationLimits.y, weightLimits.x, weightLimits.y);
-            mutations += c2.network.Mutate(mutationChance, mutationLimits.x, mutationLimits.y, weightLimits.x, weightLimits.y);
-            
+            mutations += c1.Mutate();
+            mutations += c2.Mutate();
+
             c1.InitValues();
             c2.InitValues();
 
@@ -184,7 +181,7 @@ public class NeuralNetworkManager : MonoBehaviour
             Quaternion rotation = Quaternion.AngleAxis(Random.value * 360, Vector3.up);
             agents[i] = Instantiate(prefab, position, rotation, transform);
             if (randomise)
-                agents[i].network.Randomise(initialWeightLimits.x, initialWeightLimits.y, NeuralNetwork.Cube);
+                agents[i].Randomise();
         }
         return agents;
     }

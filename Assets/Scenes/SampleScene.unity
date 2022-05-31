@@ -532,7 +532,7 @@ MonoBehaviour:
   weightLimits: {x: -1, y: 1}
   mutationLimits: {x: -0.5, y: 0.5}
   mutationChance: 0.01
-  prefab: {fileID: 7066308709829639982, guid: 0e3790d2d917bc945a793304b985b6ed, type: 3}
+  prefab: {fileID: 7066308709829639976, guid: 0e3790d2d917bc945a793304b985b6ed, type: 3}
   spawners:
   - {fileID: 612890926}
 --- !u!4 &1574995020
