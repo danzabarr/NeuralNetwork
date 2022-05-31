@@ -9,6 +9,7 @@ public class NeuralNetworkAgent : MonoBehaviour
 
     public NeuralNetwork network;
     public float[] values;
+    public NeuralNetworkInput[] inputs;
     public UnityEvent<float>[] actions;
 
     public virtual void Output(int index, float value) 
@@ -39,157 +40,6 @@ public class NeuralNetworkAgent : MonoBehaviour
         RecalculateValues();
     }
 
-    public void OnDrawGizmos()
-    {
-        float c = CohesionAngle * 180;
-
-        Vector3 angle = Quaternion.Euler(0, c, 0) * transform.forward;
-
-        Gizmos.DrawLine(transform.position, transform.position + angle);
-
-    }
-
-    public void OnDrawGizmosSelected()
-    {
-        float c = CohesionAngle;
-        float a = AlignmentAngle;
-
-        MoreGizmos.DrawCircle(transform.position, visionRange, (int)(visionRange * .5f));
-        Vector3 alignment = Vector2.zero;
-        Vector3 cohesion = Vector2.zero;
-        int n = 0;
-        if (SceneManager.agents != null)
-            foreach (NeuralNetworkAgent agent in SceneManager.agents)
-            {
-                if (agent == null)
-                    continue;
-
-                if (agent == this)
-                    continue;
-
-                float sqDist = Vector3.SqrMagnitude(agent.transform.position - transform.position);
-
-                if (sqDist <= visionRange * visionRange)
-
-                {
-                    cohesion += agent.transform.position;
-                    alignment += agent.transform.forward;
-                    n++;
-                }
-            }
-
-        if (n > 0)
-            cohesion /= n;
-        alignment = alignment.normalized;
-
-        float alignmentAngle = Vector3.SignedAngle(transform.forward, alignment, Vector3.up) / 180;
-        float cohesionAngle = Vector3.SignedAngle(transform.forward, cohesion - transform.position, Vector3.up) / 180;
-
-        Gizmos.DrawLine(transform.position, transform.position + alignment);
-        Gizmos.DrawLine(transform.position, cohesion);
-    }
-    public float CohesionAngle
-    {
-        get
-        {
-            Vector3 cohesion = Vector2.zero;
-            int n = 0;
-            if (SceneManager.agents != null)
-                foreach (NeuralNetworkAgent agent in SceneManager.agents)
-                {
-                    if (agent == null)
-                        continue;
-
-                    if (agent == this)
-                        continue;
-
-                    float sqDist = Vector3.SqrMagnitude(agent.transform.position - transform.position);
-
-                    if (sqDist <= visionRange * visionRange)
-                    {
-                        cohesion += (agent.transform.position - transform.position);
-                        n++;
-                    }
-                }
-
-            if (n <= 0)
-                return 0;
-
-            cohesion /= n;
-            //cohesion -= transform.position;
-            //cohesion *= -1;
-
-            return Vector3.SignedAngle(transform.forward, cohesion, Vector3.up) / 180;
-        }
-    }
-    public float SeparationAngle
-    {
-        get
-        {
-            Vector3 separation = Vector2.zero;
-            int n = 0;
-            if (SceneManager.agents != null)
-                foreach (NeuralNetworkAgent agent in SceneManager.agents)
-                {
-                    if (agent == null)
-                        continue;
-
-                    if (agent == this)
-                        continue;
-
-                    float sqDist = Vector3.SqrMagnitude(agent.transform.position - transform.position);
-
-                    if (sqDist <= visionRange * visionRange)
-                    {
-                        separation += (transform.position - agent.transform.position) / (1 + sqDist);
-                        n++;
-                    }
-                }
-
-            if (n <= 0)
-                return 0;
-
-            separation /= n;
-            //cohesion -= transform.position;
-            //separation *= -1;
-
-            return Vector3.SignedAngle(transform.forward, separation, Vector3.up) / 180;
-        }
-    }
-
-    public float AlignmentAngle
-    {
-        get
-        {
-            Vector3 alignment = Vector2.zero;
-            int n = 0;
-            if (SceneManager.agents != null)
-                foreach (NeuralNetworkAgent agent in SceneManager.agents)
-                {
-                    if (agent == null)
-                        continue;
-
-                    if (agent == this)
-                        continue;
-                        
-                    float sqDist = Vector3.SqrMagnitude(agent.transform.position - transform.position);
-
-                    if (sqDist <= visionRange * visionRange)
-
-                    {
-                        alignment += agent.transform.forward / (1 + sqDist);
-                        n++;
-                    }
-                }
-
-            if (n <= 0)
-                return 0;
-
-            alignment /= n;
-
-            return Vector3.SignedAngle(transform.forward, alignment, Vector3.up) / 180;
-        }
-    }
 
     public void Update()
     {
@@ -200,8 +50,11 @@ public class NeuralNetworkAgent : MonoBehaviour
 
     public void TriggerSensors()
     {
+        if (inputs == null || inputs.Length != network.inputs)
+            inputs = new NeuralNetworkInput[inputs.Length];
+
         for (int i = 0; i < network.inputs; i++)
-            values[i] = Input(i);
+            values[i] = inputs[i].Input();//Input(i);
     }
 
     public void TriggerActions()
@@ -347,4 +200,106 @@ public class NeuralNetworkAgent : MonoBehaviour
         }
     }
 
+    public float CohesionAngle
+    {
+        get
+        {
+            Vector3 cohesion = Vector2.zero;
+            int n = 0;
+            if (SceneManager.agents != null)
+                foreach (NeuralNetworkAgent agent in SceneManager.agents)
+                {
+                    if (agent == null)
+                        continue;
+
+                    if (agent == this)
+                        continue;
+
+                    float sqDist = Vector3.SqrMagnitude(agent.transform.position - transform.position);
+
+                    if (sqDist <= visionRange * visionRange)
+                    {
+                        cohesion += (agent.transform.position - transform.position);
+                        n++;
+                    }
+                }
+
+            if (n <= 0)
+                return 0;
+
+            cohesion /= n;
+            //cohesion -= transform.position;
+            //cohesion *= -1;
+
+            return Vector3.SignedAngle(transform.forward, cohesion, Vector3.up) / 180;
+        }
+    }
+    public float SeparationAngle
+    {
+        get
+        {
+            Vector3 separation = Vector2.zero;
+            int n = 0;
+            if (SceneManager.agents != null)
+                foreach (NeuralNetworkAgent agent in SceneManager.agents)
+                {
+                    if (agent == null)
+                        continue;
+
+                    if (agent == this)
+                        continue;
+
+                    float sqDist = Vector3.SqrMagnitude(agent.transform.position - transform.position);
+
+                    if (sqDist <= visionRange * visionRange)
+                    {
+                        separation += (transform.position - agent.transform.position) / (1 + sqDist);
+                        n++;
+                    }
+                }
+
+            if (n <= 0)
+                return 0;
+
+            separation /= n;
+            //cohesion -= transform.position;
+            //separation *= -1;
+
+            return Vector3.SignedAngle(transform.forward, separation, Vector3.up) / 180;
+        }
+    }
+
+    public float AlignmentAngle
+    {
+        get
+        {
+            Vector3 alignment = Vector2.zero;
+            int n = 0;
+            if (SceneManager.agents != null)
+                foreach (NeuralNetworkAgent agent in SceneManager.agents)
+                {
+                    if (agent == null)
+                        continue;
+
+                    if (agent == this)
+                        continue;
+
+                    float sqDist = Vector3.SqrMagnitude(agent.transform.position - transform.position);
+
+                    if (sqDist <= visionRange * visionRange)
+
+                    {
+                        alignment += agent.transform.forward / (1 + sqDist);
+                        n++;
+                    }
+                }
+
+            if (n <= 0)
+                return 0;
+
+            alignment /= n;
+
+            return Vector3.SignedAngle(transform.forward, alignment, Vector3.up) / 180;
+        }
+    }
 }

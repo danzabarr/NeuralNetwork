@@ -265,7 +265,7 @@ public struct NeuralNetwork
             n0 += width;
         }
 
-        d = depth + 1;
+        //d = depth + 1;
 
         for (r1 = 0; r1 < outputs; r1++)
         {
@@ -280,47 +280,5 @@ public struct NeuralNetwork
             n1++;
             n0 -= secondToLastLayerWidth;
         }
-
-        /*
-        int layer = 0;
-        int from = 0;
-        int to = 0;
-
-        int secondLayerWidth = width;
-        int secondToLastLayerWidth = width;
-        if (depth <= 0) {
-            secondLayerWidth = outputs;
-            secondToLastLayerWidth = inputs;
-        }
-
-        for (int i = inputs; i < values.Length; i++)
-            values[i] = 0;
-
-        for (int i = 0; i < weights.Length; i++)
-        {
-            if (i < secondLayerWidth * inputs)
-            {
-                from = i % inputs;
-                to = i / inputs + inputs;
-            }
-            else if (i >= weights.Length - outputs * secondToLastLayerWidth)
-            {
-                int j = i - secondLayerWidth * inputs;
-                from = j / (width * width) * width + inputs + j % width;
-            }
-            else
-            {
-                int j = i - width * inputs;
-
-                layer = j / width + 1;
-
-                from = j / (width * width) * width + inputs + j % width;
-                to = j / width + inputs + width;
-            }
-
-            Debug.Log(i + " (" + layer + ") " + from + ">" + to);
-            values[to] += Activation(weights[i] * values[from]);
-        }
-        */
     }
 }
